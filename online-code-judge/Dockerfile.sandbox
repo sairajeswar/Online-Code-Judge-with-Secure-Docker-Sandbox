@@ -1,0 +1,31 @@
+# Hardened multi-language sandbox image for online code judge
+# Minimal base to keep attack surface small
+FROM python:3.11-slim
+
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Install basic build tools and compilers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    g++ \
+    gcc \
+    coreutils \
+    procps \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create unprivileged judge user and group with explicit UID/GID 10001
+RUN groupadd -g 10001 judge && \
+    useradd -u 10001 -g 10001 -m -d /home/judge -s /bin/bash judge
+
+# Create dedicated sandbox working directory
+WORKDIR /workspace
+RUN chown -R judge:judge /workspace && chmod 755 /workspace
+
+# Switch to non-root user
+USER judge:judge
+
+# Health check / default command
+CMD ["python3", "-c", "print('Sandbox Ready')"]
